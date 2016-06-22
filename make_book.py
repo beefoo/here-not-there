@@ -8,6 +8,7 @@ import csv
 import math
 import os
 from PIL import Image, ImageDraw
+from PyPDF2 import PdfFileMerger
 import sys
 
 # input
@@ -21,7 +22,8 @@ OUTPUT_DIR = sys.argv[3]
 # config
 sheetW = 8.5
 sheetH = 11.0
-fileExt = ".png"
+fileFormat = "PDF"
+fileExt = ".pdf" # png
 
 # ensure output dir exists
 if not os.path.exists(OUTPUT_DIR):
@@ -52,6 +54,17 @@ for mf in INPUT_MANIFEST_FILES:
             "name": os.path.basename(mf).split(".")[0],
             "pages": pages
         })
+
+def mergePages(pages, filename):
+    merger = PdfFileMerger()
+
+    for p in pages:
+        f = open(p, "rb")
+        merger.append(f)
+
+    with open(filename, "wb") as outfile:
+        merger.write(outfile)
+        print "Saved binder: %s" % filename
 
 # read files from directory
 for f in manifest_files:
@@ -90,6 +103,12 @@ for f in manifest_files:
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+    # initialize binders
+    binder = []
+    binder_odd = []
+    binder_even = []
+    binder_covers = []
+
     max_i = pageCount - 1
     for i in range(imageCount):
 
@@ -106,6 +125,12 @@ for f in manifest_files:
         for fi in file_indices:
             page = pages[fi]
             image = Image.open(page["file"])
+
+            # Make warnings if size mismatch
+            (thisW, thisH) = image.size
+            if thisW != pageW or thisH != pageH:
+                print "Warning: size mismatch for %s (%s x %s)" % (page["file"], thisW, thisH)
+
             imageBase.paste(image, (x, y))
 
             # place in a grid of 4
@@ -114,21 +139,38 @@ for f in manifest_files:
                 x = 0
                 y += pageH
 
-        # Put guide lines on image
-        draw = ImageDraw.Draw(imageBase)
-        margin = pxPerInch * 0.25
-        x = pageW * 2 + 1
-        w = pxPerInch * 0.5
-        draw.line([(x, margin), (x, w)], fill=128)
-        draw.line([(x, imageH-margin), (x, imageH-w)], fill=128)
-        draw.line([(margin, pageH), (w, pageH)], fill=128)
-        draw.line([(imageW-margin, pageH), (imageW-w, pageH)], fill=128)
-        del draw
+        # Put guide lines on every other image
+        if i % 2 == 0:
+            draw = ImageDraw.Draw(imageBase)
+            margin = pxPerInch * 0.25
+            x = pageW * 2 + 1
+            w = pxPerInch * 0.5
+            draw.line([(x, margin), (x, w)], fill=128)
+            draw.line([(x, imageH-margin), (x, imageH-w)], fill=128)
+            draw.line([(margin, pageH), (w, pageH)], fill=128)
+            draw.line([(imageW-margin, pageH), (imageW-w, pageH)], fill=128)
+            del draw
 
         # Save the image
         page_type = "page"
         if i <= 1:
             page_type = "cover"
         outputFile =  directory + "/" + page_type + "_" + format(i, '03') + fileExt
-        imageBase.save(outputFile, dpi=dpi)
+        imageBase.save(outputFile, fileFormat, dpi=dpi)
         print "Saved image: %s" % outputFile
+
+        # Build binders
+        if i > 1:
+            binder.append(outputFile)
+            if i % 2 == 0:
+                binder_even.append(outputFile)
+            else:
+                binder_odd.append(outputFile)
+        else:
+            binder_covers.append(outputFile)
+
+    # Make pdf binders
+    mergePages(binder, directory + "/" + "binder" + fileExt)
+    mergePages(binder_even, directory + "/" + "binder_even" + fileExt)
+    mergePages(binder_odd, directory + "/" + "binder_odd" + fileExt)
+    mergePages(binder_covers, directory + "/" + "binder_covers" + fileExt)

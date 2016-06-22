@@ -3,3 +3,4 @@ output/*
 _dev/*
 fonts/*
 *.ai
+production/*

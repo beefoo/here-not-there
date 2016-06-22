@@ -2,8 +2,9 @@
 
 # Description: generates set of images that can be printed as a book
 # Example usage:
-#   python make_book.py manifest/red.csv,manifest/yellow.csv,manifest/blue.csv pages/ print/
+#   python make_book.py -mf red,yellow,blue
 
+import argparse
 import csv
 import math
 import os
@@ -12,18 +13,32 @@ from PyPDF2 import PdfFileMerger
 import sys
 
 # input
-if len(sys.argv) < 3:
-    print "Usage: %s <commas-separated paths to manifest files> <input directory> <output directory>" % sys.argv[0]
-    sys.exit(1)
-INPUT_MANIFEST_FILES = sys.argv[1]
-INPUT_DIR = sys.argv[2]
-OUTPUT_DIR = sys.argv[3]
+parser = argparse.ArgumentParser()
+parser.add_argument('-mf', dest="INPUT_MANIFEST_FILES", default="red,yellow,blue", help="Comma-separated list of manifest file names")
+parser.add_argument('-md', dest="MANIFEST_DIR", default="manifest/", help="Directory of manifest files")
+parser.add_argument('-id', dest="INPUT_DIR", default="pages/", help="Directory of input files/pages")
+parser.add_argument('-od', dest="OUTPUT_DIR", default="print/", help="Directory for output files")
+parser.add_argument('-g', dest="GUIDES", default=True, type=bool, help="Show or hide guides")
+parser.add_argument('-cg', dest="COVER_GUTTER", default=0.25, type=float, help="Cover gutter in inches")
+parser.add_argument('-pg', dest="PAGE_GUTTER", default=0.125, type=float, help="Page gutter in inches")
+parser.add_argument('-pgi', dest="PAGE_GUTTER_INCREMENT", default=0.03125, type=float, help="Page gutter increment in inches")
+
+# init input
+args = parser.parse_args()
+MANIFEST_DIR = args.MANIFEST_DIR
+INPUT_MANIFEST_FILES = [MANIFEST_DIR + f + '.csv' for f in args.INPUT_MANIFEST_FILES.split(",")]
+INPUT_DIR = args.INPUT_DIR
+OUTPUT_DIR = args.OUTPUT_DIR
+GUIDES = args.GUIDES
+COVER_GUTTER = args.COVER_GUTTER
+PAGE_GUTTER = args.PAGE_GUTTER
+PAGE_GUTTER_INCREMENT = args.PAGE_GUTTER_INCREMENT
 
 # config
 sheetW = 8.5
 sheetH = 11.0
 fileFormat = "PDF"
-fileExt = ".pdf" # png
+fileExt = ".pdf"
 
 # ensure output dir exists
 if not os.path.exists(OUTPUT_DIR):
@@ -31,7 +46,6 @@ if not os.path.exists(OUTPUT_DIR):
 
 # read manifest files
 manifest_files = []
-INPUT_MANIFEST_FILES = INPUT_MANIFEST_FILES.split(",")
 for mf in INPUT_MANIFEST_FILES:
     with open(mf) as f:
         r = csv.DictReader(f)
@@ -112,61 +126,85 @@ for f in manifest_files:
     max_i = pageCount - 1
     for i in range(imageCount):
 
+        # Determine what kind of image this is
+        isCover = False
+        if i <= 1:
+            isCover = True
+        isPage = not isCover
+        isEven = False
+        if i % 2 == 0:
+            isEven = True
+        isOdd = not isEven
+
         # Create a blank image
         imageBase = Image.new("RGB", (imageW, imageH), "white")
 
+        # Determine which pages go on this image
         base_i = i * 2 - i % 2
-        file_indices = [max_i - base_i, base_i, max_i - (base_i+2), base_i+2]
-        if i % 2 == 1:
-            file_indices = [base_i, max_i - base_i, base_i+2, max_i - (base_i+2)]
+        page_indices = [max_i - base_i, base_i, max_i - (base_i+2), base_i+2]
+        if isOdd:
+            page_indices = [base_i, max_i - base_i, base_i+2, max_i - (base_i+2)]
 
+        # Determine the gutter
+        gutterMultiplier = int((imageCount-1-i) / 2)
+        gutter = PAGE_GUTTER + PAGE_GUTTER_INCREMENT * gutterMultiplier
+        if isCover:
+            gutter = COVER_GUTTER
+        gutter *= pxPerInch
 
+        # Odd pages should have space on left rather than right
         offset_x = 0
-        if i % 2 > 0:
+        if isOdd:
             offset_x = imageW - pageW * 2
+
+        print "Building image with pages (%s) and gutter (%spx)" % (", ".join([str(p) for p in page_indices]), gutter)
+
+        # Paste the pages into the image
         x = offset_x
         y = 0
-        for fi in file_indices:
-            page = pages[fi]
+        for pi in page_indices:
+            page = pages[pi]
+
+            # Paste image
             image = Image.open(page["file"])
+            imageBase.paste(image, (x, y))
 
             # Make warnings if size mismatch
             (thisW, thisH) = image.size
             if thisW != pageW or thisH != pageH:
                 print "Warning: size mismatch for %s (%s x %s)" % (page["file"], thisW, thisH)
 
-            imageBase.paste(image, (x, y))
-
             # place in a grid of 4
-            x += pageW
-            if x >= pageW * 2:
+            x += pageW + gutter
+            if x >= pageW * 2 + gutter:
                 x = offset_x
                 y += pageH
+            x = int(round(x))
 
         # Put guide lines on every other image
-        if i % 2 == 0:
+        if isEven and GUIDES:
             draw = ImageDraw.Draw(imageBase)
-            margin = pxPerInch * 0.25
-            x = pageW * 2 + 1
-            w = pxPerInch * 0.5
-            draw.line([(x, margin), (x, w)], fill=128)
-            draw.line([(x, imageH-margin), (x, imageH-w)], fill=128)
-            draw.line([(margin, pageH), (w, pageH)], fill=128)
-            draw.line([(imageW-margin, pageH), (imageW-w, pageH)], fill=128)
+            margin = pxPerInch * 0.25 # the margin of the image
+            x = int(round(pageW * 2 + gutter + 1)) # the x position of right vertical guides
+            w = pxPerInch * 0.5 # the length of guide
+            draw.line([(x, margin), (x, w)], fill=128) # top, right, vertical
+            draw.line([(x, imageH-margin), (x, imageH-w)], fill=128) # bottom, right, vertical
+            draw.line([(margin, pageH), (w, pageH)], fill=128) # center, left, horizontal
+            draw.line([(x, pageH), (x-w+margin, pageH)], fill=128) # center, right, horizontal
             del draw
 
         # Save the image
         page_type = "page"
-        if i <= 1:
+        if isCover:
             page_type = "cover"
         outputFile =  directory + "/" + page_type + "_" + format(i, '03') + fileExt
         imageBase.save(outputFile, fileFormat, dpi=dpi)
         print "Saved image: %s" % outputFile
 
         # Build binders
-        if i > 1:
+        if isPage:
             binder.append(outputFile)
-            if i % 2 == 0:
+            if isEven:
                 binder_even.append(outputFile)
             else:
                 binder_odd.append(outputFile)

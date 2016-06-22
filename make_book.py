@@ -12,7 +12,7 @@ from PyPDF2 import PdfFileMerger
 import sys
 
 # input
-if len(sys.argv) < 2:
+if len(sys.argv) < 3:
     print "Usage: %s <commas-separated paths to manifest files> <input directory> <output directory>" % sys.argv[0]
     sys.exit(1)
 INPUT_MANIFEST_FILES = sys.argv[1]
@@ -120,7 +120,11 @@ for f in manifest_files:
         if i % 2 == 1:
             file_indices = [base_i, max_i - base_i, base_i+2, max_i - (base_i+2)]
 
-        x = 0
+
+        offset_x = 0
+        if i % 2 > 0:
+            offset_x = imageW - pageW * 2
+        x = offset_x
         y = 0
         for fi in file_indices:
             page = pages[fi]
@@ -136,7 +140,7 @@ for f in manifest_files:
             # place in a grid of 4
             x += pageW
             if x >= pageW * 2:
-                x = 0
+                x = offset_x
                 y += pageH
 
         # Put guide lines on every other image

@@ -155,7 +155,7 @@ for f in manifest_files:
         # Odd pages should have space on left rather than right
         offset_x = 0
         if isOdd:
-            offset_x = imageW - pageW * 2
+            offset_x = int(round(imageW - pageW * 2 - gutter))
 
         print "Building image with pages (%s) and gutter (%spx)" % (", ".join([str(p) for p in page_indices]), gutter)
 
@@ -212,7 +212,11 @@ for f in manifest_files:
             binder_covers.append(outputFile)
 
     # Make pdf binders
-    mergePages(binder, directory + "/" + "binder" + fileExt)
-    mergePages(binder_even, directory + "/" + "binder_even" + fileExt)
-    mergePages(binder_odd, directory + "/" + "binder_odd" + fileExt)
-    mergePages(binder_covers, directory + "/" + "binder_covers" + fileExt)
+    if len(binder):
+        mergePages(binder, directory + "/" + "binder" + fileExt)
+    if len(binder_even):
+        mergePages(binder_even, directory + "/" + "binder_even" + fileExt)
+    if len(binder_odd):
+        mergePages(binder_odd, directory + "/" + "binder_odd" + fileExt)
+    if len(binder_covers):
+        mergePages(binder_covers, directory + "/" + "binder_covers" + fileExt)

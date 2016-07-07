@@ -4,3 +4,4 @@ _dev/*
 fonts/*
 *.ai
 production/*
+*.pyc

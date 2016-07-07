@@ -184,7 +184,7 @@ for f in manifest_files:
         # Put guide lines on every other image
         if isEven and GUIDES:
             draw = ImageDraw.Draw(imageBase)
-            margin = pxPerInch * 0.25 # the margin of the image
+            margin = pxPerInch * 0.375 # the margin of the image
             x = int(round(pageW * 2 + gutter + 1)) # the x position of right vertical guides
             w = pxPerInch * 0.5 # the length of guide
             draw.line([(x, margin), (x, w)], fill=128) # top, right, vertical
@@ -198,7 +198,7 @@ for f in manifest_files:
         if isCover:
             page_type = "cover"
         outputFile =  directory + "/" + page_type + "_" + format(i, '03') + fileExt
-        imageBase.save(outputFile, fileFormat, dpi=dpi)
+        imageBase.save(outputFile, fileFormat, dpi=dpi, resolution=dpi[0])
         print "Saved image: %s" % outputFile
 
         # Build binders

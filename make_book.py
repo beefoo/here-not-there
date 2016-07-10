@@ -21,7 +21,7 @@ parser.add_argument('-od', dest="OUTPUT_DIR", default="print/", help="Directory 
 parser.add_argument('-g', dest="GUIDES", default=True, type=bool, help="Show or hide guides")
 parser.add_argument('-cg', dest="COVER_GUTTER", default=0.25, type=float, help="Cover gutter in inches")
 parser.add_argument('-pg', dest="PAGE_GUTTER", default=0.125, type=float, help="Page gutter in inches")
-parser.add_argument('-pgi', dest="PAGE_GUTTER_INCREMENT", default=0.03125, type=float, help="Page gutter increment in inches")
+parser.add_argument('-pgi', dest="PAGE_GUTTER_INCREMENT", default=0.0, type=float, help="Page gutter increment in inches")
 
 # init input
 args = parser.parse_args()
@@ -156,6 +156,11 @@ for f in manifest_files:
         offset_x = 0
         if isOdd:
             offset_x = int(round(imageW - pageW * 2 - gutter))
+
+        # Outer covers should be centered
+        if isCover and i < 1:
+            offset_x =  int(round(gutter * 0.25))
+            gutter =  int(round(gutter * 0.5))
 
         print "Building image with pages (%s) and gutter (%spx)" % (", ".join([str(p) for p in page_indices]), gutter)
 

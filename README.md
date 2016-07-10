@@ -1,9 +1,9 @@
 # Instructions
 
-1. Create images that:
+1. Create images that are:
   * PNG format
-  * 3.5 x 5.5in
-  * Margins >= 0.25in
+  * 3.5 x 5.5 in
+  * Margins >= 0.25 in
 2. Create manifest files in CSV format
   * Columns: name, file
   * Ensure number of pages (excluding inner and outer covers) is a multiple of 8

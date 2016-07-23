@@ -158,9 +158,10 @@ for f in manifest_files:
             offset_x = int(round(imageW - pageW * 2 - gutter))
 
         # Outer covers should be centered
+        adjustedGutter = gutter
         if isCover and i < 1:
             offset_x =  int(round(gutter * 0.25))
-            gutter =  int(round(gutter * 0.5))
+            adjustedGutter =  int(round(gutter * 0.5))
 
         print "Building image with pages (%s) and gutter (%spx)" % (", ".join([str(p) for p in page_indices]), gutter)
 
@@ -180,8 +181,8 @@ for f in manifest_files:
                 print "Warning: size mismatch for %s (%s x %s)" % (page["file"], thisW, thisH)
 
             # place in a grid of 4
-            x += pageW + gutter
-            if x >= pageW * 2 + gutter:
+            x += pageW + adjustedGutter
+            if x >= pageW * 2 + adjustedGutter:
                 x = offset_x
                 y += pageH
             x = int(round(x))

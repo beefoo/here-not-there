@@ -6,3 +6,4 @@ fonts/*
 *.ai
 production/*
 *.pyc
+*.pdf

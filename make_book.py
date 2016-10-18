@@ -14,6 +14,7 @@ import sys
 
 # input
 parser = argparse.ArgumentParser()
+parser.add_argument('-bd', dest="BASE_DIR", default="", help="Base directory")
 parser.add_argument('-mf', dest="INPUT_MANIFEST_FILES", default="red,yellow,blue", help="Comma-separated list of manifest file names")
 parser.add_argument('-md', dest="MANIFEST_DIR", default="manifest/", help="Directory of manifest files")
 parser.add_argument('-id', dest="INPUT_DIR", default="pages/", help="Directory of input files/pages")
@@ -25,10 +26,11 @@ parser.add_argument('-pgi', dest="PAGE_GUTTER_INCREMENT", default=0.0, type=floa
 
 # init input
 args = parser.parse_args()
-MANIFEST_DIR = args.MANIFEST_DIR
+BASE_DIR = args.BASE_DIR
+MANIFEST_DIR = BASE_DIR + args.MANIFEST_DIR
 INPUT_MANIFEST_FILES = [MANIFEST_DIR + f + '.csv' for f in args.INPUT_MANIFEST_FILES.split(",")]
-INPUT_DIR = args.INPUT_DIR
-OUTPUT_DIR = args.OUTPUT_DIR
+INPUT_DIR = BASE_DIR + args.INPUT_DIR
+OUTPUT_DIR = BASE_DIR + args.OUTPUT_DIR
 GUIDES = args.GUIDES
 COVER_GUTTER = args.COVER_GUTTER
 PAGE_GUTTER = args.PAGE_GUTTER
